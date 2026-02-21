@@ -1,6 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
+:root {
+  --bg-color: #050505;
+  --card-color: #0f0f0f;
+  --text-color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --muted-color: rgba(255, 255, 255, 0.05);
+  --nav-bg: rgba(15, 15, 15, 0.8);
+}
+
+:root.light {
+  --bg-color: #f8fafc;
+  --card-color: #ffffff;
+  --text-color: #0f172a;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --muted-color: rgba(0, 0, 0, 0.04);
+  --nav-bg: rgba(255, 255, 255, 0.8);
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -9,14 +27,16 @@
   --color-neon-blue: #00d4ff;
   --color-neon-pink: #ff007a;
   --color-neon-yellow: #fcd34d;
-  --color-app-bg: #050505;
-  --color-app-card: #0f0f0f;
-  --color-app-border: #1a1a1a;
+  --color-app-bg: var(--bg-color);
+  --color-app-card: var(--card-color);
+  --color-app-text: var(--text-color);
+  --color-app-border: var(--border-color);
+  --color-app-muted: var(--muted-color);
 }
 
 @layer base {
   body {
-    @apply font-sans antialiased bg-app-bg text-white selection:bg-neon-green selection:text-black;
+    @apply font-sans antialiased bg-app-bg text-app-text selection:bg-neon-green selection:text-black transition-colors duration-300;
   }
 }
 
@@ -32,6 +52,10 @@
   box-shadow: 0 0 15px rgba(255, 0, 122, 0.3);
 }
 
+.neon-glow-yellow {
+  box-shadow: 0 0 15px rgba(252, 211, 77, 0.3);
+}
+
 .neon-border-green {
   border: 1px solid rgba(0, 255, 157, 0.5);
 }
@@ -41,7 +65,15 @@
 }
 
 .glass-nav {
-  background: rgba(15, 15, 15, 0.8);
+  background: var(--nav-bg);
   backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-color);
+}
+
+:root {
+  --nav-bg: rgba(15, 15, 15, 0.8);
+}
+
+.light {
+  --nav-bg: rgba(255, 255, 255, 0.8);
 }

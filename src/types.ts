@@ -21,6 +21,7 @@ export interface AppSettings {
   weekly_goal: number;
   monthly_goal: number;
   last_reset_date: string;
+  user_name: string;
 }
 
 export const MOTIVATIONAL_PHRASES = [

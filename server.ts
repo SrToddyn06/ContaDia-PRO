@@ -29,7 +29,8 @@ const defaultSettings = [
   ['theme', 'vibrant'],
   ['weekly_goal', '2000'],
   ['monthly_goal', '8000'],
-  ['last_reset_date', new Date(0).toISOString()]
+  ['last_reset_date', new Date(0).toISOString()],
+  ['user_name', 'Funcionário']
 ];
 
 const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
