@@ -11,13 +11,18 @@
 }
 
 :root.light {
-  --bg-color: #f8fafc;
+  --bg-color: #f1f5f9; /* Softer slate background */
   --card-color: #ffffff;
-  --text-color: #0f172a;
-  --border-color: rgba(0, 0, 0, 0.08);
-  --muted-color: rgba(0, 0, 0, 0.04);
-  --nav-bg: rgba(255, 255, 255, 0.8);
+  --text-color: #1e293b; /* Deep slate for text */
+  --border-color: rgba(15, 23, 42, 0.06);
+  --muted-color: #e2e8f0;
+  --nav-bg: rgba(255, 255, 255, 0.85);
 }
+
+:root.light .neon-glow-green { box-shadow: 0 4px 12px rgba(0, 255, 157, 0.15); }
+:root.light .neon-glow-blue { box-shadow: 0 4px 12px rgba(0, 212, 255, 0.15); }
+:root.light .neon-glow-pink { box-shadow: 0 4px 12px rgba(255, 0, 122, 0.15); }
+:root.light .neon-glow-yellow { box-shadow: 0 4px 12px rgba(252, 211, 77, 0.15); }
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -37,6 +42,12 @@
 @layer base {
   body {
     @apply font-sans antialiased bg-app-bg text-app-text selection:bg-neon-green selection:text-black transition-colors duration-300;
+    letter-spacing: -0.01em;
+    line-height: 1.6;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
   }
 }
 
@@ -56,6 +67,14 @@
   box-shadow: 0 0 15px rgba(252, 211, 77, 0.3);
 }
 
+.neon-button-green:hover { box-shadow: 0 0 20px rgba(0, 255, 157, 0.4); }
+.neon-button-blue:hover { box-shadow: 0 0 20px rgba(0, 212, 255, 0.4); }
+.neon-button-pink:hover { box-shadow: 0 0 20px rgba(255, 0, 122, 0.4); }
+
+:root.light .neon-button-green:hover { box-shadow: 0 8px 20px rgba(0, 255, 157, 0.2); }
+:root.light .neon-button-blue:hover { box-shadow: 0 8px 20px rgba(0, 212, 255, 0.2); }
+:root.light .neon-button-pink:hover { box-shadow: 0 8px 20px rgba(255, 0, 122, 0.2); }
+
 .neon-border-green {
   border: 1px solid rgba(0, 255, 157, 0.5);
 }
@@ -66,14 +85,12 @@
 
 .glass-nav {
   background: var(--nav-bg);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border-color);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
 }
 
-:root {
-  --nav-bg: rgba(15, 15, 15, 0.8);
-}
-
-.light {
-  --nav-bg: rgba(255, 255, 255, 0.8);
+:root.light .glass-nav {
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
 }

@@ -32,16 +32,16 @@ const NeonCard = ({ children, className = "", glowColor = "green" }: { children:
 
 const NeonButton = ({ children, onClick, variant = 'green', className = "", disabled = false }: any) => {
   const variants = {
-    green: 'bg-neon-green/10 text-neon-green border-neon-green/50 hover:bg-neon-green hover:text-black',
-    blue: 'bg-neon-blue/10 text-neon-blue border-neon-blue/50 hover:bg-neon-blue hover:text-black',
-    pink: 'bg-neon-pink/10 text-neon-pink border-neon-pink/50 hover:bg-neon-pink hover:text-black',
+    green: 'bg-neon-green/10 text-neon-green border-neon-green/30 hover:bg-neon-green hover:text-black dark:hover:text-black',
+    blue: 'bg-neon-blue/10 text-neon-blue border-neon-blue/30 hover:bg-neon-blue hover:text-black dark:hover:text-black',
+    pink: 'bg-neon-pink/10 text-neon-pink border-neon-pink/30 hover:bg-neon-pink hover:text-black dark:hover:text-black',
     ghost: 'bg-transparent text-app-text/40 hover:text-app-text hover:bg-app-muted border-transparent'
   };
-  const glow = { green: '0 0 20px rgba(0, 255, 157, 0.4)', blue: '0 0 20px rgba(0, 212, 255, 0.4)', pink: '0 0 20px rgba(255, 0, 122, 0.4)', ghost: 'none' };
+  
   return (
-    <motion.button whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02, boxShadow: glow[variant as keyof typeof glow] }}
+    <motion.button whileTap={{ scale: 0.94 }} whileHover={{ scale: 1.02 }}
       initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} onClick={onClick} disabled={disabled}
-      className={`px-6 py-4 rounded-2xl font-bold border transition-all flex items-center justify-center gap-3 disabled:opacity-30 ${variants[variant as keyof typeof variants]} ${className}`}>
+      className={`px-6 py-4 rounded-2xl font-bold border transition-all flex items-center justify-center gap-3 disabled:opacity-30 neon-button-${variant} ${variants[variant as keyof typeof variants]} ${className}`}>
       {children}
     </motion.button>
   );
@@ -157,7 +157,6 @@ export default function App() {
         
         let dateStr, typeStr, valueStr;
         if (parts.length >= 6) {
-          dateStr = parts[0] === settings.user_name ? parts[1] + ' ' + parts[2] : parts[1] + ' ' + parts[2]; // Simplified
           dateStr = parts[1] + ' ' + parts[2];
           typeStr = parts[4];
           valueStr = parts[5];
@@ -190,6 +189,17 @@ export default function App() {
     };
     reader.readAsText(file);
     event.target.value = '';
+  };
+
+  const resetBalance = () => {
+    const now = new Date().toISOString();
+    saveSettingsToLocal({ last_reset_date: now });
+    setModals(m => ({ ...m, reset: false }));
+  };
+
+  const factoryReset = () => {
+    localStorage.clear();
+    window.location.reload();
   };
 
   const stats = useMemo(() => {
@@ -350,17 +360,17 @@ export default function App() {
                   <h2 className="text-5xl font-black tracking-tighter">R$ <NumberTicker value={stats.total} /></h2>
                 </NeonCard>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <NeonCard glowColor="blue" className="flex flex-col justify-center">
+                  <NeonCard glowColor="blue" className="flex flex-col justify-center py-5">
                     <p className="text-[10px] font-bold text-app-text/40 uppercase tracking-widest mb-1">Diárias</p>
-                    <p className="text-3xl font-black">{stats.fullDays}</p>
+                    <p className="text-3xl font-black tracking-tight">{stats.fullDays}</p>
                   </NeonCard>
-                  <NeonCard glowColor="yellow" className="flex flex-col justify-center">
+                  <NeonCard glowColor="yellow" className="flex flex-col justify-center py-5">
                     <p className="text-[10px] font-bold text-app-text/40 uppercase tracking-widest mb-1">Meias</p>
-                    <p className="text-3xl font-black">{stats.halfDays}</p>
+                    <p className="text-3xl font-black tracking-tight">{stats.halfDays}</p>
                   </NeonCard>
-                  <NeonCard glowColor="pink" className="flex flex-col justify-center">
+                  <NeonCard glowColor="pink" className="flex flex-col justify-center py-5">
                     <p className="text-[10px] font-bold text-app-text/40 uppercase tracking-widest mb-1">Meta Sem.</p>
-                    <p className="text-3xl font-black">{stats.wProgress.toFixed(0)}%</p>
+                    <p className="text-3xl font-black tracking-tight">{stats.wProgress.toFixed(0)}%</p>
                   </NeonCard>
                 </div>
               </div>
