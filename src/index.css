@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-neon-green: #00ff9d;
+  --color-neon-blue: #00d4ff;
+  --color-neon-pink: #ff007a;
+  --color-neon-yellow: #fcd34d;
+  --color-app-bg: #050505;
+  --color-app-card: #0f0f0f;
+  --color-app-border: #1a1a1a;
+}
+
+@layer base {
+  body {
+    @apply font-sans antialiased bg-app-bg text-white selection:bg-neon-green selection:text-black;
+  }
+}
+
+.neon-glow-green {
+  box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
+}
+
+.neon-glow-blue {
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.neon-glow-pink {
+  box-shadow: 0 0 15px rgba(255, 0, 122, 0.3);
+}
+
+.neon-border-green {
+  border: 1px solid rgba(0, 255, 157, 0.5);
+}
+
+.neon-text-green {
+  text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+}
+
+.glass-nav {
+  background: rgba(15, 15, 15, 0.8);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
