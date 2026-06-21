@@ -36,6 +36,7 @@ export interface AppSettings {
   monthly_goal: number;
   last_reset_date: string;
   user_name: string;
+  show_mock_banner?: boolean;
 }
 
 export const MOTIVATIONAL_PHRASES = [

@@ -65,16 +65,26 @@ const NumberTicker = ({ value }: { value: number }) => {
     if (start === end) return;
     const duration = 800;
     const startTime = performance.now();
+    let animId: number;
     const update = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(2, -10 * progress);
-      setDisplay(Math.round(start + (end - start) * ease));
-      if (progress < 1) requestAnimationFrame(update);
+      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const currentVal = start + (end - start) * ease;
+      setDisplay(progress === 1 ? end : currentVal);
+      if (progress < 1) {
+        animId = requestAnimationFrame(update);
+      }
     };
-    requestAnimationFrame(update);
+    animId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animId);
   }, [value]);
-  return <span>{display.toLocaleString()}</span>;
+
+  const formatted = display.toLocaleString('pt-BR', {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2
+  });
+  return <span>{formatted}</span>;
 };
 
 // --- Main App ---
@@ -109,7 +119,7 @@ export default function App() {
     theme: 'dark', weekly_goal: 2000, monthly_goal: 8000, last_reset_date: new Date(0).toISOString()
   });
   const [phrase, setPhrase] = useState({ text: "", type: 'motivation' as 'motivation' | 'joke' });
-  const [modals, setModals] = useState({ reset: false, addExpense: false, addFixed: false });
+  const [modals, setModals] = useState({ reset: false, addExpense: false, addFixed: false, factoryReset: false });
   const [newFixedLabel, setNewFixedLabel] = useState("");
   const [undo, setUndo] = useState<{ label: string; revert: () => void; id: number } | null>(null);
   const [exportDate, setExportDate] = useState(new Date().toISOString().split('T')[0]);
@@ -329,6 +339,11 @@ export default function App() {
     setSettings(updated);
   };
 
+  const handleFactoryReset = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
   const triggerUndo = (label: string, revert: () => void) => {
     const id = Date.now();
     setUndo({ label, revert, id });
@@ -438,6 +453,111 @@ export default function App() {
     };
   }, [logs, settings]);
 
+  const selectedMonthStats = useMemo(() => {
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+
+    // Filter logs for selected month
+    const mLogs = logs.filter(l => {
+      try {
+        const d = parseISO(l.date);
+        return d >= start && d <= end;
+      } catch { return false; }
+    });
+    const totalEarned = mLogs.reduce((a, c) => a + (Number(c.value) || 0), 0);
+
+    // Filter expenses for selected month
+    const mExpenses = expenses.filter(e => {
+      try {
+        const d = parseISO(e.date);
+        return d >= start && d <= end;
+      } catch { return false; }
+    });
+
+    const hasInjectedFixed = mExpenses.some(e => e.category === 'Fixos (Auto)');
+    const variableExpenses = mExpenses.filter(e => e.category !== 'Fixos (Auto)');
+    const variableSpent = variableExpenses.reduce((a, c) => a + (Number(c.value) || 0), 0);
+
+    const fixedSpent = hasInjectedFixed
+      ? mExpenses.filter(e => e.category === 'Fixos (Auto)').reduce((a, c) => a + (Number(c.value) || 0), 0)
+      : fixedExpenses.filter(f => f.isActive).reduce((a, c) => a + (Number(c.value) || 0), 0);
+
+    const totalSpent = variableSpent + fixedSpent;
+    const balance = totalEarned - totalSpent;
+
+    return {
+      earned: totalEarned,
+      spent: totalSpent,
+      balance
+    };
+  }, [currentMonth, logs, expenses, fixedExpenses]);
+
+  const monthlyHistory = useMemo(() => {
+    const historyMap: { 
+      [key: string]: { 
+        date: Date; 
+        earned: number; 
+        variableSpent: number; 
+        fixedSpent: number; 
+        hasInjectedFixed: boolean; 
+      } 
+    } = {};
+
+    logs.forEach(l => {
+      try {
+        const d = parseISO(l.date);
+        const key = format(d, 'yyyy-MM');
+        if (!historyMap[key]) {
+          historyMap[key] = { date: startOfMonth(d), earned: 0, variableSpent: 0, fixedSpent: 0, hasInjectedFixed: false };
+        }
+        historyMap[key].earned += Number(l.value) || 0;
+      } catch {}
+    });
+
+    expenses.forEach(e => {
+      try {
+        const d = parseISO(e.date);
+        const key = format(d, 'yyyy-MM');
+        if (!historyMap[key]) {
+          historyMap[key] = { date: startOfMonth(d), earned: 0, variableSpent: 0, fixedSpent: 0, hasInjectedFixed: false };
+        }
+        if (e.category === 'Fixos (Auto)') {
+          historyMap[key].fixedSpent += Number(e.value) || 0;
+          historyMap[key].hasInjectedFixed = true;
+        } else {
+          historyMap[key].variableSpent += Number(e.value) || 0;
+        }
+      } catch {}
+    });
+
+    const activeFixedSum = fixedExpenses.filter(f => f.isActive).reduce((a, c) => a + c.value, 0);
+    Object.keys(historyMap).forEach(key => {
+      if (!historyMap[key].hasInjectedFixed) {
+        historyMap[key].fixedSpent = activeFixedSum;
+      }
+    });
+
+    const currentKey = format(currentMonth, 'yyyy-MM');
+    if (!historyMap[currentKey]) {
+      historyMap[currentKey] = {
+        date: startOfMonth(currentMonth),
+        earned: 0,
+        variableSpent: 0,
+        fixedSpent: activeFixedSum,
+        hasInjectedFixed: false
+      };
+    }
+
+    return Object.values(historyMap)
+      .map(item => ({
+        date: item.date,
+        earned: item.earned,
+        spent: item.variableSpent + item.fixedSpent,
+        balance: item.earned - (item.variableSpent + item.fixedSpent)
+      }))
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [logs, expenses, fixedExpenses, currentMonth]);
+
   const exportCSV = (range: 'all' | 'month' | 'day' = 'all') => {
     let filteredLogs = [...logs];
     let filename = `contadia_total_${format(new Date(), 'yyyy-MM-dd')}`;
@@ -509,33 +629,52 @@ export default function App() {
 
     const thisMonthExpenses = expenses.filter(e => isSameMonth(parseISO(e.date), now));
     const lastMonthExpenses = expenses.filter(e => {
-      const d = parseISO(e.date);
-      return isAfter(d, lastMonthStart) && isBefore(d, lastMonthEnd);
+      try {
+        const d = parseISO(e.date);
+        return d >= lastMonthStart && d <= lastMonthEnd;
+      } catch { return false; }
     });
 
     const activeFixedSum = fixedExpenses.filter(f => f.isActive).reduce((a, c) => a + c.value, 0);
-    
-    const thisMonthTotal = thisMonthExpenses.reduce((a, c) => a + c.value, 0) + activeFixedSum;
-    const lastMonthTotal = lastMonthExpenses.reduce((a, c) => a + c.value, 0) + activeFixedSum;
+
+    const thisMonthHasInjected = thisMonthExpenses.some(e => e.category === 'Fixos (Auto)');
+    const thisMonthVariable = thisMonthExpenses.filter(e => e.category !== 'Fixos (Auto)').reduce((a, c) => a + (Number(c.value) || 0), 0);
+    const thisMonthFixed = thisMonthHasInjected
+      ? thisMonthExpenses.filter(e => e.category === 'Fixos (Auto)').reduce((a, c) => a + (Number(c.value) || 0), 0)
+      : activeFixedSum;
+    const thisMonthTotal = thisMonthVariable + thisMonthFixed;
+
+    const lastMonthHasInjected = lastMonthExpenses.some(e => e.category === 'Fixos (Auto)');
+    const lastMonthVariable = lastMonthExpenses.filter(e => e.category !== 'Fixos (Auto)').reduce((a, c) => a + (Number(c.value) || 0), 0);
+    const lastMonthFixed = lastMonthHasInjected
+      ? lastMonthExpenses.filter(e => e.category === 'Fixos (Auto)').reduce((a, c) => a + (Number(c.value) || 0), 0)
+      : activeFixedSum;
+    const lastMonthTotal = lastMonthVariable + lastMonthFixed;
 
     const todayStart = startOfDay(now);
     const todayTotal = expenses.filter(e => isSameDay(parseISO(e.date), todayStart)).reduce((a, c) => a + c.value, 0);
 
-    const categoryData = thisMonthExpenses.reduce((acc: any, curr) => {
-      const cat = curr.category;
-      acc[cat] = (acc[cat] || 0) + curr.value;
-      return acc;
-    }, {});
+    const categoryData = thisMonthExpenses
+      .filter(e => e.category !== 'Fixos (Auto)')
+      .reduce((acc: any, curr) => {
+        const cat = curr.category;
+        acc[cat] = (acc[cat] || 0) + curr.value;
+        return acc;
+      }, {});
+
+    if (thisMonthFixed > 0) {
+      categoryData['Despesas Fixas'] = (categoryData['Despesas Fixas'] || 0) + thisMonthFixed;
+    }
 
     const pieData = Object.entries(categoryData).map(([name, value]) => ({ name, value }));
 
     return {
       thisMonthTotal,
-      thisMonthVariable: thisMonthTotal - activeFixedSum,
+      thisMonthVariable,
       lastMonthTotal,
       todayTotal,
-      monthCount: thisMonthExpenses.length,
-      fixedTotal: activeFixedSum,
+      monthCount: thisMonthExpenses.filter(e => e.category !== 'Fixos (Auto)').length,
+      fixedTotal: thisMonthFixed,
       pieData,
       isHigher: thisMonthTotal > lastMonthTotal,
       diff: Math.abs(thisMonthTotal - lastMonthTotal)
@@ -670,8 +809,17 @@ export default function App() {
             <motion.div key="cal" initial={{ opacity: 0, scale: 0.98, filter: 'blur(10px)' }} animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} exit={{ opacity: 0, scale: 1.02, filter: 'blur(10px)' }} className="space-y-6">
               <h2 className="text-[10px] font-bold text-app-text/40 uppercase tracking-[0.3em]">Calendário de Atividades</h2>
               <div className="grid grid-cols-3 gap-3">
-                {[ { l: 'Semanal', v: stats.weekly, c: 'green' }, { l: 'Mensal', v: stats.monthly, c: 'blue' }, { l: 'Anual', v: stats.yearly, c: 'pink' } ].map((s, i) => (
-                  <div key={i} className="p-4 rounded-2xl bg-app-muted border border-app-border"><p className="text-[8px] font-bold text-app-text/30 uppercase mb-1">{s.l}</p><p className={`text-sm font-bold text-neon-${s.c}`}>R$ {s.v}</p></div>
+                {[ 
+                  { l: 'Ganhos Mês', v: selectedMonthStats.earned, c: 'green' }, 
+                  { l: 'Gastos Mês', v: selectedMonthStats.spent, c: 'pink' }, 
+                  { l: 'Saldo Mês', v: selectedMonthStats.balance, c: 'blue' } 
+                ].map((s, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-app-muted border border-app-border">
+                    <p className="text-[8px] font-bold text-app-text/30 uppercase mb-1">{s.l}</p>
+                    <p className={`text-xs font-black text-neon-${s.c} truncate`}>
+                      R$ {s.v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
                 ))}
               </div>
 
@@ -760,6 +908,34 @@ export default function App() {
                   })()}
                 </div>
               </div>
+
+              {/* Seção de Resumo Mensal Geral */}
+              <div className="space-y-4 pt-6 border-t border-app-border">
+                <p className="text-[10px] font-bold text-app-text/40 uppercase tracking-widest">Resumo Mensal Geral</p>
+                <div className="space-y-3">
+                  {monthlyHistory.map((m, i) => (
+                    <div key={i} className="p-5 rounded-3xl bg-app-card border border-app-border flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-tight text-neon-blue">
+                          {format(m.date, 'MMMM yyyy', { locale: ptBR })}
+                        </p>
+                        <div className="flex gap-4 mt-1 text-[9px] font-semibold text-app-text/40 uppercase tracking-wider">
+                          <span>Recebido: <span className="text-neon-green">R$ {m.earned.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+                          <span>Gasto: <span className="text-neon-pink">R$ {m.spent.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-[10px] font-black tracking-tight px-3 py-1.5 rounded-xl ${m.balance >= 0 ? 'bg-neon-green/10 text-neon-green border border-neon-green/20' : 'bg-neon-pink/10 text-neon-pink border border-neon-pink/20'}`}>
+                          {m.balance >= 0 ? '+' : ''} R$ {m.balance.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {monthlyHistory.length === 0 && (
+                    <div className="py-8 text-center text-xs text-app-text/20 italic">Ainda não há dados mensais suficientes.</div>
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -823,6 +999,30 @@ export default function App() {
                       <input type="checkbox" checked={settings[t.k as keyof AppSettings] as any} onChange={(e) => saveSettingsToLocal({ [t.k]: e.target.checked })} className={`w-10 h-5 rounded-full bg-app-muted appearance-none checked:bg-neon-${t.c} transition-all relative before:content-[''] before:absolute before:w-3 before:h-3 before:bg-white before:rounded-full before:top-1 before:left-1 checked:before:left-6`} />
                     </label>
                   ))}
+                </div>
+
+                {/* Reset Padrões de Fábrica */}
+                <div id="factory-reset-section" className="space-y-4 pt-6 border-t border-app-border">
+                  <p className="text-[10px] font-bold text-app-text/40 uppercase tracking-widest">Manutenção do Sistema</p>
+                  
+                  <div className="p-5 rounded-3xl bg-app-card border border-neon-pink/20 hover:border-neon-pink/40 transition-all space-y-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-neon-pink/10 flex items-center justify-center text-neon-pink">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </div>
+                      <h4 className="text-xs font-black uppercase text-app-text">Formatar para Padrões de Fábrica</h4>
+                    </div>
+                    <p className="text-[10px] text-app-text/60 leading-relaxed">
+                      Esta ação irá apagar definitivamente todos os lançamentos inseridos, configurações personalizadas, metas e o histórico de despesas, restaurando o aplicativo ao estado original de instalação.
+                    </p>
+
+                    <button 
+                      onClick={() => setModals(m => ({ ...m, factoryReset: true }))}
+                      className="w-full p-4 rounded-2xl bg-neon-pink/10 border border-neon-pink/20 hover:bg-neon-pink hover:text-white font-black uppercase text-[10px] tracking-wider transition-all flex items-center justify-center gap-2 text-neon-pink"
+                    >
+                      ⚠️ Restaurar Padrões de Fábrica
+                    </button>
+                  </div>
                 </div>
               </div>
               <section className="pt-12 border-t border-app-border space-y-6">
@@ -895,12 +1095,6 @@ export default function App() {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <h2 className="text-[10px] font-bold text-app-text/40 uppercase tracking-[0.3em]">Controle de Gastos</h2>
-                  <button 
-                    onClick={() => setModals(m => ({ ...m, addExpense: true }))}
-                    className="w-8 h-8 rounded-full bg-neon-pink text-white flex items-center justify-center shadow-lg shadow-neon-pink/40 hover:scale-110 active:scale-95 transition-transform"
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
                 </div>
                 <div className="flex p-1 bg-app-muted border border-app-border rounded-xl">
                   <button onClick={() => setExpenseSubTab('overview')} className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${expenseSubTab === 'overview' ? 'bg-app-card text-neon-pink shadow-sm' : 'text-app-text/30'}`}>Dashboard</button>
@@ -1068,6 +1262,40 @@ export default function App() {
               )}
 
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {modals.factoryReset && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.9, opacity: 0 }} 
+                className="bg-app-card border border-neon-pink/30 rounded-[2.5rem] p-8 max-w-sm w-full text-center neon-glow-pink"
+              >
+                <div className="w-16 h-16 bg-neon-pink/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Trash2 className="w-8 h-8 text-neon-pink" />
+                </div>
+                <h3 className="text-2xl font-black mb-2 uppercase tracking-tighter text-app-text">Formatar App?</h3>
+                <p className="text-app-text/60 text-xs mb-8 leading-relaxed">Isso apagará definitivamente todos os seus lançamentos, ganhos, despesas fixas e ajustes pessoais. O aplicativo voltará ao estado original.</p>
+                
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={handleFactoryReset} 
+                    className="w-full py-4 rounded-2xl bg-neon-pink text-white font-black uppercase text-[10px] tracking-wider shadow-lg shadow-neon-pink/20 hover:scale-102 active:scale-98 transition-all"
+                  >
+                    Confirmar Formatação
+                  </button>
+                  <button 
+                    onClick={() => setModals(m => ({ ...m, factoryReset: false }))} 
+                    className="w-full py-4 rounded-2xl bg-app-muted text-app-text/60 font-bold uppercase text-[10px] tracking-wider hover:bg-app-muted/80 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

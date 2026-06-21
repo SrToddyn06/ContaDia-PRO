@@ -2,42 +2,27 @@
 @import "tailwindcss";
 
 :root {
-  --bg-color: #050505;
-  --card-color: #0f0f0f;
+  --bg-color: linear-gradient(145deg, #181a1e 0%, #0e1012 100%);
+  --card-color: #14161a;
   --text-color: #ffffff;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --muted-color: rgba(255, 255, 255, 0.05);
-  --nav-bg: rgba(15, 15, 15, 0.8);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --muted-color: rgba(255, 255, 255, 0.04);
+  --nav-bg: rgba(20, 22, 26, 0.8);
 }
 
 :root.light {
-  --bg-color: #f1f5f9;
-  --card-color: #ffffff;
-  --text-color: #020617;
-  --border-color: #cbd5e1;
-  --muted-color: #e2e8f0;
-  --nav-bg: rgba(241, 245, 249, 0.95);
+  --bg-color: linear-gradient(145deg, #d3d8e0 0%, #b8bfc9 100%);
+  --card-color: #e3e9f1;
+  --text-color: #0f172a;
+  --border-color: rgba(15, 23, 42, 0.12);
+  --muted-color: rgba(15, 23, 42, 0.06);
+  --nav-bg: rgba(227, 233, 241, 0.85);
 }
 
-:root.light .neon-glow-green { box-shadow: 0 4px 12px rgba(6, 78, 59, 0.05); border-color: rgba(6, 78, 59, 0.2); }
-:root.light .neon-glow-blue { box-shadow: 0 4px 12px rgba(30, 58, 138, 0.05); border-color: rgba(30, 58, 138, 0.2); }
-:root.light .neon-glow-pink { box-shadow: 0 4px 12px rgba(136, 19, 55, 0.05); border-color: rgba(136, 19, 55, 0.2); }
-:root.light .neon-glow-yellow { box-shadow: 0 4px 12px rgba(133, 77, 14, 0.05); border-color: rgba(133, 77, 14, 0.2); }
-
-:root.light .text-neon-green { color: #064e3b; } /* Verde Escuro */
-:root.light .text-neon-blue { color: #1e3a8a; }  /* Azul Escuro */
-:root.light .text-neon-pink { color: #881337; }  /* Rosa/Vinho Escuro */
-:root.light .text-neon-yellow { color: #854d0e; }
-
-:root.light .bg-neon-green\/10 { background-color: rgba(6, 78, 59, 0.06); }
-:root.light .bg-neon-blue\/10 { background-color: rgba(30, 58, 138, 0.06); }
-:root.light .bg-neon-pink\/10 { background-color: rgba(136, 19, 55, 0.06); }
-
-:root.light .border-neon-green\/30 { border-color: rgba(6, 78, 59, 0.15); }
-:root.light .border-neon-blue\/30 { border-color: rgba(30, 58, 138, 0.15); }
-:root.light .border-neon-pink\/30 { border-color: rgba(136, 19, 55, 0.15); }
-
-:root.light .neon-text-green { color: #064e3b; text-shadow: none; }
+:root.light .neon-glow-green { box-shadow: 0 4px 12px rgba(0, 255, 157, 0.08); border-color: rgba(0, 255, 157, 0.15); }
+:root.light .neon-glow-blue { box-shadow: 0 4px 12px rgba(0, 212, 255, 0.08); border-color: rgba(0, 212, 255, 0.15); }
+:root.light .neon-glow-pink { box-shadow: 0 4px 12px rgba(255, 0, 122, 0.08); border-color: rgba(255, 0, 122, 0.15); }
+:root.light .neon-glow-yellow { box-shadow: 0 4px 12px rgba(252, 211, 77, 0.08); border-color: rgba(252, 211, 77, 0.15); }
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -56,7 +41,9 @@
 
 @layer base {
   body {
-    @apply font-sans antialiased bg-app-bg text-app-text selection:bg-neon-green selection:text-black transition-colors duration-300;
+    @apply font-sans antialiased text-app-text selection:bg-neon-green selection:text-black transition-colors duration-300;
+    background: var(--bg-color);
+    background-attachment: fixed;
     letter-spacing: -0.01em;
     line-height: 1.6;
   }
