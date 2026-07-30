@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { 
   LayoutDashboard, Calendar as CalendarIcon, Settings as SettingsIcon, 
   Plus, RotateCcw, Download, Trash2, AlertCircle,
-  Coffee, Zap, ShieldCheck, Wallet, ArrowUpRight, ArrowDownRight, Info
+  Coffee, Zap, ShieldCheck, Wallet, ArrowUpRight, ArrowDownRight, Info, Bell, BellRing, Clock
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { format, parseISO, isSameDay, isSameMonth, isAfter, subDays } from 'date-fns';
@@ -162,6 +162,48 @@ export default function App() {
                     <button onClick={() => setSettings((s: any) => ({...s, theme: 'light'}))} className={`p-4 rounded-2xl border ${settings.theme === 'light' ? 'bg-neon-yellow/10 border-neon-yellow text-neon-yellow' : 'bg-app-muted border-app-border text-app-text/40'}`}>Claro</button>
                   </div>
                 </div>
+                <div className="space-y-4 pt-4 border-t border-app-border">
+                  <p className="text-[10px] font-bold text-app-text/40 uppercase tracking-widest">Lembrete Diário</p>
+                  <div className="p-5 rounded-3xl bg-app-card border border-app-border space-y-4">
+                    <label className="flex items-center justify-between cursor-pointer group">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${settings.notifications_enabled ? 'bg-neon-blue/10 text-neon-blue' : 'bg-app-muted text-app-text/20'}`}>
+                          {settings.notifications_enabled ? <BellRing className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold">Ativar Notificação</p>
+                          <p className="text-[10px] text-app-text/40 uppercase">Lembrete para registrar diária</p>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={settings.notifications_enabled}
+                        onChange={(e) => setSettings((s: any) => ({...s, notifications_enabled: e.target.checked}))}
+                        className={`w-10 h-5 rounded-full bg-app-muted appearance-none checked:bg-neon-blue transition-all relative before:content-[''] before:absolute before:w-3 before:h-3 before:bg-white before:rounded-full before:top-1 before:left-1 checked:before:left-6`}
+                      />
+                    </label>
+
+                    {settings.notifications_enabled && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        className="pt-4 border-t border-app-border flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2 text-app-text/60">
+                          <Clock className="w-4 h-4 text-neon-blue" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Horário do Lembrete:</span>
+                        </div>
+                        <input
+                          type="time"
+                          value={settings.notification_time}
+                          onChange={(e) => setSettings((s: any) => ({...s, notification_time: e.target.value}))}
+                          className="bg-app-muted border border-app-border rounded-xl px-4 py-2 text-sm font-mono font-bold text-neon-blue focus:border-neon-blue outline-none"
+                        />
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="p-5 rounded-3xl bg-app-card border border-neon-pink/20 space-y-4">
                     <h4 className="text-xs font-black uppercase">Manutenção</h4>
                     <button onClick={() => setModals((m: any) => ({ ...m, factoryReset: true }))} className="w-full p-4 rounded-2xl bg-neon-pink/10 border border-neon-pink/20 text-neon-pink font-black uppercase text-[10px]">⚠️ Restaurar Padrões de Fábrica</button>

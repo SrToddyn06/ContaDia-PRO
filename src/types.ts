@@ -41,4 +41,6 @@ export interface AppSettings {
   last_reset_date: string;
   user_name: string;
   show_mock_banner?: boolean;
+  notifications_enabled: boolean;
+  notification_time: string; // HH:mm
 }

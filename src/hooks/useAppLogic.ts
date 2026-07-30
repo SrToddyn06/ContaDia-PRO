@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import confetti from 'canvas-confetti';
 import { WorkLog, AppSettings, Expense, FixedExpense } from '../types';
 import { roundMoney } from '../utils/money';
+import { scheduleReminder } from '../utils/notifications';
 
 export const useAppLogic = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'expenses' | 'settings'>('dashboard');
@@ -21,7 +22,7 @@ export const useAppLogic = () => {
   const [settings, setSettings] = useLocalStorage<AppSettings>('contadia_settings', {
     half_day_value: 60, full_day_value: 120, show_jokes: true, show_tips: true,
     theme: 'dark', weekly_goal: 2000, monthly_goal: 8000, last_reset_date: new Date(0).toISOString(),
-    user_name: ''
+    user_name: '', notifications_enabled: false, notification_time: '18:00'
   });
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -101,7 +102,11 @@ export const useAppLogic = () => {
     const wEarned = getEarned(weekStart);
     const mEarned = getEarned(monthStart);
 
-    return {
+    useEffect(() => {
+    scheduleReminder(settings.notification_time, settings.notifications_enabled);
+  }, [settings.notification_time, settings.notifications_enabled]);
+
+  return {
       total: roundMoney(active.reduce((a, c) => a + (Number(c.value) || 0), 0)),
       daily: dEarned,
       days: active.length,
@@ -131,6 +136,10 @@ export const useAppLogic = () => {
     localStorage.clear();
     window.location.reload();
   }, []);
+
+  useEffect(() => {
+    scheduleReminder(settings.notification_time, settings.notifications_enabled);
+  }, [settings.notification_time, settings.notifications_enabled]);
 
   return {
     activeTab, setActiveTab,
