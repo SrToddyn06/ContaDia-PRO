@@ -12,11 +12,23 @@ import { App as CapApp } from '@capacitor/app';
 import { useAppLogic } from './hooks/useAppLogic';
 import { Dashboard } from './components/screens/Dashboard';
 import { Calendar } from './components/screens/Calendar';
-import { AnimatedSplash } from './components/AnimatedSplash';
 import { NeonButton, NeonCard } from './components/UI';
 import { CATEGORIES, APP_VERSION } from './constants';
 import { roundMoney } from './utils/money';
 import { Expense, FixedExpense } from './types';
+
+// Simplified Splash to avoid potential asset/motion bugs
+const SimpleSplash = () => (
+  <div className="fixed inset-0 z-[1000] bg-[#0a0a0a] flex flex-col items-center justify-center">
+    <div className="w-24 h-24 bg-neon-green/20 rounded-3xl flex items-center justify-center animate-pulse mb-4">
+      <Zap className="w-12 h-12 text-neon-green" />
+    </div>
+    <h1 className="text-2xl font-black italic tracking-tighter text-white">CONTADIA PRO</h1>
+    <div className="mt-8 w-32 h-1 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-full bg-neon-green animate-[loading_2s_ease-in-out_infinite]" style={{ width: '50%' }} />
+    </div>
+  </div>
+);
 
 export default function App() {
   const logic = useAppLogic();
@@ -32,32 +44,36 @@ export default function App() {
   } = logic;
 
   useEffect(() => {
-    const backListener = CapApp.addListener('backButton', () => {
-      if (modals.reset || modals.addExpense || modals.addFixed || modals.factoryReset) {
-        setModals({ reset: false, addExpense: false, addFixed: false, factoryReset: false });
-        clearExpenseForm();
-        return;
-      }
-
-      if (activeTab !== 'dashboard') {
-        setActiveTab('dashboard');
-        return;
-      }
-
-      setExitAttempts(prev => {
-        if (prev >= 1) {
-          CapApp.exitApp();
-          return 0;
+    const setupBackBtn = async () => {
+      const listener = await CapApp.addListener('backButton', () => {
+        if (modals.reset || modals.addExpense || modals.addFixed || modals.factoryReset) {
+          setModals({ reset: false, addExpense: false, addFixed: false, factoryReset: false });
+          clearExpenseForm();
+          return;
         }
-        setExitToast(true);
-        setTimeout(() => setExitToast(false), 2000);
-        return prev + 1;
-      });
-    });
 
-    return () => {
-      backListener.then(l => l.remove());
+        if (activeTab !== 'dashboard') {
+          setActiveTab('dashboard');
+          return;
+        }
+
+        setExitAttempts(prev => {
+          if (prev >= 1) {
+            CapApp.exitApp();
+            return 0;
+          }
+          setExitToast(true);
+          setTimeout(() => setExitToast(false), 2000);
+          return prev + 1;
+        });
+      });
+
+      return () => {
+        listener.remove();
+      };
     };
+
+    setupBackBtn();
   }, [activeTab, modals, setActiveTab, setExitAttempts, setExitToast, setModals, clearExpenseForm]);
 
   const handleTabChange = (tab: any) => {
@@ -74,7 +90,7 @@ export default function App() {
   return (
     <div className={`min-h-screen bg-app-bg text-app-text font-sans selection:bg-neon-blue/30 ${settings.theme === 'light' ? 'light' : ''}`}>
       <AnimatePresence>
-        {isAppLoading && <AnimatedSplash key="splash" />}
+        {isAppLoading && <SimpleSplash key="splash" />}
       </AnimatePresence>
 
       {!isAppLoading && (
@@ -88,13 +104,13 @@ export default function App() {
 
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
-              <motion.div key="db" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              <motion.div key="db" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <Dashboard stats={stats} settings={settings} addLog={addLog} setModals={setModals} phrase={phrase} />
               </motion.div>
             )}
 
             {activeTab === 'calendar' && (
-              <motion.div key="cal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              <motion.div key="cal" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
                 <Calendar
                   currentMonth={currentMonth} setCurrentMonth={setCurrentMonth}
                   selectedDate={selectedDate} setSelectedDate={setSelectedDate}
@@ -104,7 +120,7 @@ export default function App() {
             )}
 
             {activeTab === 'expenses' && (
-              <motion.div key="exp" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8 pb-10">
+              <motion.div key="exp" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8 pb-10">
                 <div className="flex items-center justify-between gap-4">
                   <h2 className="text-[10px] font-bold text-app-text/40 uppercase tracking-[0.3em]">Controle de Gastos</h2>
                   <div className="flex p-1 bg-app-muted border border-app-border rounded-xl">
@@ -181,7 +197,7 @@ export default function App() {
             )}
 
             {activeTab === 'settings' && (
-              <motion.div key="set" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
+              <motion.div key="set" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
                 <h2 className="text-[10px] font-bold text-app-text/40 uppercase tracking-[0.3em]">Ajustes do Sistema</h2>
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
