@@ -7,6 +7,8 @@ import {
 import { ptBR } from 'date-fns/locale';
 import confetti from 'canvas-confetti';
 import { WorkLog, AppSettings, Expense, FixedExpense } from '../types';
+import { useLocalStorage } from './useLocalStorage';
+import { INITIAL_FIXED_EXPENSES, MOTIVATIONAL_PHRASES, JOKES } from '../constants';
 import { roundMoney } from '../utils/money';
 import { scheduleReminder } from '../utils/notifications';
 
@@ -102,11 +104,7 @@ export const useAppLogic = () => {
     const wEarned = getEarned(weekStart);
     const mEarned = getEarned(monthStart);
 
-    useEffect(() => {
-    scheduleReminder(settings.notification_time, settings.notifications_enabled);
-  }, [settings.notification_time, settings.notifications_enabled]);
-
-  return {
+    return {
       total: roundMoney(active.reduce((a, c) => a + (Number(c.value) || 0), 0)),
       daily: dEarned,
       days: active.length,

@@ -2,11 +2,12 @@ import React, { useEffect } from 'react';
 import { 
   LayoutDashboard, Calendar as CalendarIcon, Settings as SettingsIcon, 
   Plus, RotateCcw, Download, Trash2, AlertCircle,
-  Coffee, Zap, ShieldCheck, Wallet, ArrowUpRight, ArrowDownRight, Info, Bell, BellRing, Clock
+  Coffee, Zap, ShieldCheck, Wallet, ArrowUpRight, ArrowDownRight, Info, Bell, BellRing, Clock, X
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { format, parseISO, isSameDay, isSameMonth, isAfter, subDays } from 'date-fns';
+import { format, parseISO, isSameDay, isSameMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { App as CapApp } from '@capacitor/app';
 
 import { useAppLogic } from './hooks/useAppLogic';
 import { Dashboard } from './components/screens/Dashboard';
@@ -14,6 +15,7 @@ import { Calendar } from './components/screens/Calendar';
 import { NeonButton, NeonCard } from './components/UI';
 import { CATEGORIES, APP_VERSION } from './constants';
 import { roundMoney } from './utils/money';
+import { Expense, FixedExpense } from './types';
 
 export default function App() {
   const logic = useAppLogic();
@@ -27,35 +29,45 @@ export default function App() {
   } = logic;
 
   useEffect(() => {
-    window.history.replaceState({ tab: 'dashboard' }, '');
-    const handleBackBtn = (e: PopStateEvent) => {
-      if (modals.reset || modals.addExpense) {
-        setModals((m: any) => ({ ...m, reset: false, addExpense: false }));
-        window.history.pushState({ tab: activeTab }, '');
+    CapApp.addListener('backButton', () => {
+      // If any modal is open, close it
+      if (modals.reset || modals.addExpense || modals.addFixed || modals.factoryReset) {
+        setModals({ reset: false, addExpense: false, addFixed: false, factoryReset: false });
         return;
       }
-      if (e.state?.tab && e.state.tab !== activeTab) {
-        setActiveTab(e.state.tab);
-        setExitAttempts(0);
-      } else if (activeTab === 'dashboard') {
-        setExitAttempts(prev => prev + 1);
-        setExitToast(true);
-        window.history.pushState({ tab: 'dashboard' }, '');
-        setTimeout(() => setExitToast(false), 2000);
-      } else {
+
+      // If not on dashboard, go to dashboard
+      if (activeTab !== 'dashboard') {
         setActiveTab('dashboard');
-        window.history.replaceState({ tab: 'dashboard' }, '');
+        return;
       }
+
+      // If on dashboard, handle exit with double tap protection
+      setExitAttempts(prev => {
+        if (prev >= 1) {
+          CapApp.exitApp();
+          return 0;
+        }
+        setExitToast(true);
+        setTimeout(() => setExitToast(false), 2000);
+        return prev + 1;
+      });
+    });
+
+    return () => {
+      CapApp.removeAllListeners();
     };
-    window.addEventListener('popstate', handleBackBtn);
-    return () => window.removeEventListener('popstate', handleBackBtn);
   }, [activeTab, modals, setActiveTab, setExitAttempts, setExitToast, setModals]);
 
   const handleTabChange = (tab: any) => {
     if (tab === activeTab) return;
     setActiveTab(tab);
-    window.history.pushState({ tab }, '');
     setExitAttempts(0);
+  };
+
+  const deleteExpense = (id: number) => {
+    const updated = expenses.filter(e => e.id !== id);
+    setExpenses(updated);
   };
 
   return (
@@ -91,7 +103,6 @@ export default function App() {
 
               {expenseSubTab === 'overview' ? (
                  <div className="space-y-8">
-                    {/* Simplified Expenses Overview for refinement */}
                     <div className="grid grid-cols-2 gap-4">
                       <NeonCard glowColor="pink" className="p-5">
                         <p className="text-[8px] font-bold text-app-text/40 uppercase tracking-widest mb-1">Gasto no Mês</p>
@@ -108,18 +119,31 @@ export default function App() {
                     </button>
 
                     <div className="space-y-3">
-                      {expenses.slice(0, 10).map(e => {
+                      {expenses.slice(0, 20).map(e => {
                         const cat = CATEGORIES.find(c => c.label === e.category) || CATEGORIES[CATEGORIES.length - 1];
                         return (
-                          <div key={e.id} className="p-4 rounded-2xl bg-app-muted border border-app-border flex items-center justify-between">
+                          <div key={e.id} className="p-4 rounded-2xl bg-app-muted border border-app-border flex items-center justify-between group">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-app-bg border border-app-border" style={{ color: cat.color }}><cat.icon className="w-5 h-5" /></div>
-                              <div><p className="text-sm font-bold">{e.description || e.category}</p><p className="text-[10px] text-app-text/40 uppercase">{format(parseISO(e.date), "dd/MM")}</p></div>
+                              <div>
+                                <p className="text-sm font-bold">{e.description || e.category}</p>
+                                <p className="text-[10px] text-app-text/40 uppercase">{format(parseISO(e.date), 'dd/MM')}</p>
+                              </div>
                             </div>
-                            <p className="text-base font-black text-rose-500">R$ {e.value.toFixed(2)}</p>
+                            <div className="flex items-center gap-3">
+                              <p className="text-base font-black text-rose-500">R$ {e.value.toFixed(2)}</p>
+                              <div className="flex gap-1">
+                                <button onClick={() => deleteExpense(e.id)} className="p-2 bg-rose-500/10 text-rose-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
+                      {expenses.length === 0 && (
+                        <div className="py-10 text-center border-2 border-dashed border-app-border rounded-3xl text-app-text/20 italic text-sm">Nenhum gasto registrado.</div>
+                      )}
                     </div>
                  </div>
               ) : (
@@ -259,7 +283,9 @@ export default function App() {
               <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-app-card border border-app-border rounded-[2.5rem] p-8 max-w-md w-full space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-black">Novo Gasto</h3>
-                  <button onClick={() => setModals((m: any) => ({ ...m, addExpense: false }))} className="p-2 rounded-xl bg-app-muted"><AlertCircle className="rotate-45 w-5 h-5" /></button>
+                  <button onClick={() => setModals((m: any) => ({ ...m, addExpense: false }))} className="p-2 rounded-xl bg-app-muted text-app-text/40 hover:text-app-text">
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
                 <div className="space-y-4">
                   <input type="number" placeholder="0,00" value={newExpense.value || ''} onChange={(e) => setNewExpense((p: any) => ({...p, value: Number(e.target.value)}))} className="w-full p-4 rounded-2xl bg-app-muted border border-app-border outline-none font-bold text-xl" />
