@@ -14,6 +14,7 @@ import { scheduleReminder } from '../utils/notifications';
 
 export const useAppLogic = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'expenses' | 'settings'>('dashboard');
+  const [isAppLoading, setIsAppLoading] = useState(true);
   const [exitAttempts, setExitAttempts] = useState(0);
   const [exitToast, setExitToast] = useState(false);
   const [expenseSubTab, setExpenseSubTab] = useState<'overview' | 'fixed'>('overview');
@@ -159,8 +160,14 @@ export const useAppLogic = () => {
     scheduleReminder(settings.notification_time, settings.notifications_enabled);
   }, [settings.notification_time, settings.notifications_enabled]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setIsAppLoading(false), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return {
     activeTab, setActiveTab,
+    isAppLoading,
     exitAttempts, setExitAttempts,
     exitToast, setExitToast,
     expenseSubTab, setExpenseSubTab,

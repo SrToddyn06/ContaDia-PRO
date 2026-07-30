@@ -12,6 +12,7 @@ import { App as CapApp } from '@capacitor/app';
 import { useAppLogic } from './hooks/useAppLogic';
 import { Dashboard } from './components/screens/Dashboard';
 import { Calendar } from './components/screens/Calendar';
+import { AnimatedSplash } from './components/AnimatedSplash';
 import { NeonButton, NeonCard } from './components/UI';
 import { CATEGORIES, APP_VERSION } from './constants';
 import { roundMoney } from './utils/money';
@@ -21,6 +22,7 @@ export default function App() {
   const logic = useAppLogic();
   const {
     activeTab, setActiveTab, exitToast, setExitToast, setExitAttempts,
+    isAppLoading,
     logs, expenses, setExpenses, fixedExpenses, setFixedExpenses, settings, setSettings,
     currentMonth, setCurrentMonth, selectedDate, setSelectedDate,
     phrase, modals, setModals, newFixedLabel, setNewFixedLabel,
@@ -74,6 +76,10 @@ export default function App() {
 
   return (
     <div className={`min-h-screen bg-app-bg text-app-text font-sans selection:bg-neon-blue/30 ${settings.theme === 'light' ? 'light' : ''}`}>
+      <AnimatePresence>
+        {isAppLoading && <AnimatedSplash />}
+      </AnimatePresence>
+
       <div className="max-w-md mx-auto pb-40 pt-12 px-5 sm:px-6">
         <header className="flex items-center justify-between mb-10">
           <div className="max-w-[70%]">
