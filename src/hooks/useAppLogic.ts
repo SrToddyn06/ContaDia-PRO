@@ -45,6 +45,26 @@ export const useAppLogic = () => {
     isBusiness: false
   });
 
+  const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
+
+  const startEditing = useCallback((expense: Expense) => {
+    setNewExpense(expense);
+    setEditingExpenseId(expense.id);
+    setModals(prev => ({ ...prev, addExpense: true }));
+  }, []);
+
+  const clearExpenseForm = useCallback(() => {
+    setNewExpense({
+      value: 0,
+      category: 'Alimentação',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: 'Pix',
+      isBusiness: false
+    });
+    setEditingExpenseId(null);
+  }, []);
+
   // Effect to check for month change and inject fixed expenses
   useEffect(() => {
     const lastReset = parseISO(settings.last_reset_date);
@@ -159,6 +179,10 @@ export const useAppLogic = () => {
     newExpense, setNewExpense,
     stats,
     addLog,
-    handleFactoryReset
+    handleFactoryReset,
+    editingExpenseId,
+    setEditingExpenseId,
+    startEditing,
+    clearExpenseForm
   };
 };

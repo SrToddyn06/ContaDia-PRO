@@ -25,7 +25,8 @@ export default function App() {
     currentMonth, setCurrentMonth, selectedDate, setSelectedDate,
     phrase, modals, setModals, newFixedLabel, setNewFixedLabel,
     undo, setUndo, exportDate, setExportDate, expenseFilter, setExpenseFilter,
-    newExpense, setNewExpense, stats, addLog, handleFactoryReset, expenseSubTab, setExpenseSubTab
+    newExpense, setNewExpense, stats, addLog, handleFactoryReset, expenseSubTab, setExpenseSubTab,
+    editingExpenseId, startEditing, clearExpenseForm
   } = logic;
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function App() {
       // If any modal is open, close it
       if (modals.reset || modals.addExpense || modals.addFixed || modals.factoryReset) {
         setModals({ reset: false, addExpense: false, addFixed: false, factoryReset: false });
+        clearExpenseForm();
         return;
       }
 
@@ -114,7 +116,7 @@ export default function App() {
                       </NeonCard>
                     </div>
 
-                    <button onClick={() => setModals((m: any) => ({ ...m, addExpense: true }))} className="w-full py-5 rounded-2xl bg-neon-pink text-white flex items-center justify-center gap-3 shadow-lg shadow-neon-pink/20 font-black uppercase text-xs tracking-widest hover:scale-[1.02] active:scale-98 transition-all">
+                    <button onClick={() => { clearExpenseForm(); setModals((m: any) => ({ ...m, addExpense: true })); }} className="w-full py-5 rounded-2xl bg-neon-pink text-white flex items-center justify-center gap-3 shadow-lg shadow-neon-pink/20 font-black uppercase text-xs tracking-widest hover:scale-[1.02] active:scale-98 transition-all">
                       <Plus className="w-5 h-5" /> Lançar Gasto
                     </button>
 
@@ -133,6 +135,9 @@ export default function App() {
                             <div className="flex items-center gap-3">
                               <p className="text-base font-black text-rose-500">R$ {e.value.toFixed(2)}</p>
                               <div className="flex gap-1">
+                                <button onClick={() => startEditing(e)} className="p-2 bg-neon-blue/10 text-neon-blue rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
                                 <button onClick={() => deleteExpense(e.id)} className="p-2 bg-rose-500/10 text-rose-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -282,8 +287,8 @@ export default function App() {
             <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-app-bg/95 backdrop-blur-md">
               <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-app-card border border-app-border rounded-[2.5rem] p-8 max-w-md w-full space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-black">Novo Gasto</h3>
-                  <button onClick={() => setModals((m: any) => ({ ...m, addExpense: false }))} className="p-2 rounded-xl bg-app-muted text-app-text/40 hover:text-app-text">
+                  <h3 className="text-xl font-black">{editingExpenseId ? 'Alterar Gasto' : 'Novo Gasto'}</h3>
+                  <button onClick={() => { setModals((m: any) => ({ ...m, addExpense: false })); clearExpenseForm(); }} className="p-2 rounded-xl bg-app-muted text-app-text/40 hover:text-app-text">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -293,11 +298,25 @@ export default function App() {
                     {CATEGORIES.map(c => <option key={c.label} value={c.label}>{c.label}</option>)}
                   </select>
                   <input type="text" placeholder="Descrição" value={newExpense.description} onChange={(e) => setNewExpense((p: any) => ({...p, description: e.target.value}))} className="w-full p-4 rounded-2xl bg-app-muted border border-app-border outline-none font-bold" />
+                  <input type="date" value={newExpense.date ? format(parseISO(newExpense.date), 'yyyy-MM-dd') : ''} onChange={(e) => setNewExpense((p: any) => ({...p, date: e.target.value}))} className="w-full p-4 rounded-2xl bg-app-muted border border-app-border outline-none font-bold" />
                   <NeonButton onClick={() => {
                     if (!newExpense.value) return;
-                    setExpenses((prev: Expense[]) => [{ ...newExpense, value: roundMoney(newExpense.value || 0), id: Date.now(), date: new Date().toISOString() } as Expense, ...prev]);
+                    const expenseData = {
+                      ...newExpense,
+                      value: roundMoney(newExpense.value || 0),
+                      id: editingExpenseId || Date.now(),
+                      date: newExpense.date || new Date().toISOString()
+                    } as Expense;
+
+                    if (editingExpenseId) {
+                      setExpenses((prev: Expense[]) => prev.map(e => e.id === editingExpenseId ? expenseData : e));
+                    } else {
+                      setExpenses((prev: Expense[]) => [expenseData, ...prev]);
+                    }
+
                     setModals((m: any) => ({ ...m, addExpense: false }));
-                  }} variant="pink" className="w-full h-16">Salvar Gasto</NeonButton>
+                    clearExpenseForm();
+                  }} variant="pink" className="w-full h-16">{editingExpenseId ? 'Salvar Alteração' : 'Salvar Gasto'}</NeonButton>
                 </div>
               </motion.div>
             </div>
